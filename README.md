@@ -12,5 +12,6 @@ Upload entire directory (deploy) to /root with desired sshd_config and authorize
 After everything is locked down, the firewall will disable itself for 120 seconds to ensure you do not get locked out. This should not happen,
 but better safe than sorry!
 # conf
+Create a directory called 'conf' and add the following customized files:
 authorized_keys
 sshd_config
