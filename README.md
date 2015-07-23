@@ -9,8 +9,12 @@ Upload entire directory (deploy) to /root with desired sshd_config and authorize
 3) SSH into your new vps, upload deploy to /root
 4) Execute with ./deploy.sh and follow the prompts.
 
-After everything is locked down, the firewall will disable itself for 120 seconds to ensure you do not get locked out. This should not happen,
-but better safe than sorry!
+Changes in v 1.2
+- Removed dont_KILL feature, as it's not necessary and was more of annoyance than anything else.
+- The script actaully works now. (That' always good).
+- Better error checking.
+- Better portability accross distros.
+
 # conf
 Create a directory called 'conf' and add the following customized files:
 authorized_keys
