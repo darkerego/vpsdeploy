@@ -57,19 +57,19 @@ function config_USER(){
  
 echo -e "
 ##########################################################
-#                      #VpS_DeploY # Version 1.4#                                #
+#                #VpS_DeploY # Version 2.0#              #
 # A shell script that automates the configuration of     #
 # a linux system. Originally intended to be used only    #
 # on Debian-esc VPS systems, but should work on any      #
-# linux box. Upload to the target system, execute,               #
-# follow the prompts, and you're done!                               #
+# linux box. Upload to the target system, execute,       #
+# follow the prompts, and you're done!                   #
 ##########################################################
-# Version 2.0 - Changes:                                                         #
+# Version 2.0 - Changes:                                 #
 # - Now reads ssh key and ssh options from shell so you  #
-#  don't need to save them to file before running                #
+#   don't need to save them to file before running       #
 ##########################################################
 "
-echo "Ready...";sleep 1;echo "Set...";sleep 1;echo "GO!"
+echo "Ready...";sleep 1;echo "Set...";sleep 1;echo "GO!";echo
  
 if [ $(id -u) -eq 0 ]; then
         echo "Specify credentials. (Username+Password of user we're about to add)"
