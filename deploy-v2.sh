@@ -20,8 +20,7 @@ DEPLOG="$cwd/deploy.log"
 username=$username
 RIGHT_NOW=$(date +"%x %r %Z")
 ########
-##Error/Success Messages
-OK='Command completed succesfully...'
+##Error Messages
 error1="Error setting shell!"
 SSHERROR1='SSH Configuration Error'
 SSHERROR2='ERROR SETTING PUBKEY'
@@ -29,9 +28,6 @@ SSHERROR3='ERROR Restarting ssh daemon!'
 FWERROR1='Error enabling firewall!'
 FWERROR2='Error opening port or port already open.'
 AptError1='Error updating system!'
-confERROR="Can't find all the config files we need... I can't configure ssh without a configuration and key!"
-confERROR2="Placing blank authorized_keys in ./conf. Please paste your pub key into the file and rerun."
-confERROR3="Created directory $cwd/conf..."
 erNoRoot="Must be ROOT to run this script"
  
  
