@@ -1,6 +1,6 @@
 #!/bin/bash
 ##########################################################
-##      VPS Deploy V 1.3 -- Author DarkerEgo            ##
+##      VPS Deploy V 1.3 -- Author Chev Y.              ##
 ##      https://github.com/darkerego                    ##
 ##########################################################
 ##########################################################
@@ -49,8 +49,8 @@ fi
  
 # Read u/p & add a user. If Y then add user to group sudo
  
-function config_USER(){
- 
+function hello(){
+
 echo -e "
 ##########################################################
 #                #VpS_DeploY # Version 2.0#              #
@@ -66,7 +66,8 @@ echo -e "
 ##########################################################
 "
 echo "Ready...";sleep 1;echo "Set...";sleep 1;echo "GO!";echo
- 
+}
+function config_USER(){
 if [ $(id -u) -eq 0 ]; then
         echo "Specify credentials. (Username+Password of user we're about to add)"
         (echo VpsDeploy $RIGHT_NOW) >> $DEPLOG
@@ -223,7 +224,7 @@ echo "Settings sysctl tweaks..."
 function update_SYS()
 {
 echo "Performing System Updates..." # Update repos&software
-apt-get update -qq && apt-get upgrade -y -qq  || echo $AptError1
+apt-get update -y -qq && apt-get upgrade -y -qq  || echo $AptError1
 echo "Now installing: $GETLIST..."
 apt-get install -y -qq $GETLIST || echo "Error installing some program(s)"  # Install/Remove desired programs
 echo "Removing programs: $KILLLIST"
@@ -233,7 +234,7 @@ apt-get remove -y -qq $KILLLIST || echo "Kill list error!"
  
  
  
- 
+hello | tee $deplog
 config_USER | tee $deplog
 config_SSH | tee -a $deplog
 update_SYS | tee -a $deplog
