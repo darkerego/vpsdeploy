@@ -120,7 +120,7 @@ echo copying keyfile to .ssh
 echo "Specify port number for incoming ssh connections :" #port for ufw to open for ssh
 read SHPORT
 echo Port $SHPORT >> $cwd/conf/sshd_config
-cat <<EOF > $cwd/conf/sshd_config
+cat <<EOF >> $cwd/conf/sshd_config
 Port 22
 #ListenAddress ::
 Protocol 2
@@ -223,6 +223,17 @@ echo "Settings sysctl tweaks..."
  
 function update_SYS()
 {
+ echo "This version of vpsdeploy is for Debian Jessie systems... "
+ read -p "Would you like to add the Kali Linux repos? (Y/N) :" kaliYn
+if [[ $kaliYn == "Y" ]];then
+    deb http://http.kali.org/kali sana main non-free contrib
+    deb http://security.kali.org/kali-security sana/updates main contrib non-free
+    deb-src http://http.kali.org/kali sana main non-free contrib
+    deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
+    gpg --keyserver pgpkeys.mit.edu --recv-key ED444FF07D8D0BF6
+    gpg -a --export ED444FF07D8D0BF6| apt-key add -
+ fi
+ 
 echo "Performing System Updates..." # Update repos&software
 apt-get update -y -qq && apt-get upgrade -y -qq  || echo $AptError1
 echo "Now installing: $GETLIST..."
