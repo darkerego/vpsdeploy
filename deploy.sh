@@ -29,24 +29,24 @@ FWERROR1='Error enabling firewall!'
 FWERROR2='Error opening port or port already open.'
 AptError1='Error updating system!'
 erNoRoot="Must be ROOT to run this script"
- 
- 
-# Create work dir
- 
-if [ ! -d $cwd/conf ]; then
-        mkdir conf
-fi
- 
+
 # Now the script reads this data from the command line; inserts it into these files.
- 
-if [ ! -f $cwd/conf/authorized_keys ]; then
-        touch $cwd/conf/authorized_keys
+
+# For the future, maybe..
+#fucntion log() 
+#{
+#  while read data
+#  do
+#      echo "[$(date +"%D %T")] $data" 
+#  done
+#}
+
+if [[ $(whoami) != "root" ]];then
+	echo erNoRoot
+	exit1
 fi
- 
-if [ ! -f $cwd/conf/sshd_config ]; then
-        touch conf/sshd_config
-fi
- 
+
+
 # Read u/p & add a user. If Y then add user to group sudo
  
 function hello(){
@@ -65,12 +65,18 @@ echo -e "
 #   don't need to save them to file before running       #
 ##########################################################
 "
+if [ ! -d $cwd/conf ]; then
+        mkdir conf
+fi
+
+
 echo "Ready...";sleep 1;echo "Set...";sleep 1;echo "GO!";echo
 }
 function config_USER(){
 if [ $(id -u) -eq 0 ]; then
         echo "Specify credentials. (Username+Password of user we're about to add)"
-        (echo VpsDeploy $RIGHT_NOW) >> $DEPLOG
+	sleep 1
+        #(echo VpsDeploy $RIGHT_NOW) > $DEPLOG
         read -p "Enter username : " username
         read -s -p "Enter password : " password
         echo "Configuring user..."
@@ -96,11 +102,10 @@ else
         echo $erNoRoot
         exit 2
 fi
-}
+
  
 # Configure SSH
  
-function config_SSH(){
 echo "checking for home dir..."
  
 if [ ! -d /home/$username ]; then
@@ -117,9 +122,8 @@ if [ ! -d /home/$username/.ssh ]; then
 fi
  
 echo copying keyfile to .ssh
-echo "Specify port number for incoming ssh connections :" #port for ufw to open for ssh
-read SHPORT
-echo Port $SHPORT >> $cwd/conf/sshd_config
+read -p "Specify port number for incoming ssh connections : " SHPORT
+echo Port $SHPORT > $cwd/conf/sshd_config
 cat <<EOF >> $cwd/conf/sshd_config
 Port 22
 #ListenAddress ::
@@ -171,7 +175,7 @@ EOF
  
 echo
 read -p "Paste your ssh public key here: " ssh_KEY;echo
-echo $ssh_KEY >> $CONFDIR/authorized_keys
+echo $ssh_KEY > $CONFDIR/authorized_keys
  
 cp -p $CONFDIR/authorized_keys /home/$username/.ssh/authorized_keys && echo SSH key installed... || echo $SSHERROR1
  
@@ -185,8 +189,8 @@ echo "Writing sshd_config to file.."
 echo "Backing up original..."
 mv /etc/ssh/sshd_config /etc/ssh/sshd_config.orig || echo $SSHERROR1 # Backup sshd original
 cp -p $CONFDIR/sshd_config /etc/ssh/sshd_config || echo $SSHERROR1 # Preserve permissions
-service ssh reload
-service ssh restart
+
+service ssh restart || service ssh start
  
  
  
@@ -197,7 +201,7 @@ ufw allow $SHPORT || echo $FWERROR2     # Open configured ssh port
 ufw allow 22 || echo $FWERROR2  # Don't break our current session
  
 echo "Now will enable firewall..."
-ufw enable  || echo $FWERROR1
+ufw enable  || echo $FWERROR1 || ufw restart || echo $FWERROR1
 service ssh restart || service ssh start  || echo $SSHERROR3  # Reload our new configuration
  
 echo Done. Setting kernel tweaks...Please try to login as $username on port $SHPORT with your private key.
@@ -223,33 +227,71 @@ echo "Settings sysctl tweaks..."
  
 function update_SYS()
 {
- echo "This version of vpsdeploy is for Debian Jessie systems... "
- read -p "Would you like to add the Kali Linux repos? (Y/N) :" kaliYn
-if [[ $kaliYn == "Y" ]];then
-    deb http://http.kali.org/kali sana main non-free contrib
-    deb http://security.kali.org/kali-security sana/updates main contrib non-free
-    deb-src http://http.kali.org/kali sana main non-free contrib
-    deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
-    gpg --keyserver pgpkeys.mit.edu --recv-key ED444FF07D8D0BF6
-    gpg -a --export ED444FF07D8D0BF6| apt-key add -
- fi
- 
+# Are we on Debian Jessie?
+
+ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+JES="Debian Jessie"
+askKali=false
+
+if [ -f /etc/lsb-release ]; then
+    . /etc/lsb-release
+    OS=$DISTRIB_ID
+    VER=$DISTRIB_RELEASE
+elif [ -f /etc/debian_version ]; then
+    OS=Debian  # XXX or Ubuntu??
+    VER=$(cat /etc/debian_version)
+elif [ -f /etc/redhat-release ]; then
+    # TODO add code for Red Hat and CentOS here
+echo;echo
+else
+    OS=$(uname -s)
+    VER=$(uname -r)
+fi
+
+for i in $OS $VER $ARCH;do echo $i;done
+
+if [[ $OS == "Debian" ]];then
+        if [[ $VER == "8" ]]; then
+        askKali=true
+        elif [[$VER == "8.1" ]];then
+        askKali=true
+        elif [[$VER == "8.2" ]];then
+        askKali=true
+        fi
+fi
+
+if [[ $askKali == "true" ]];then
+
+	echo "It appears this is a Debian Jessie system...($OS $VER $ARCH) ";sleep 1
+	read -p "Would you like to add the Kali Linux repos? (Y/N) :" kaliYn
+	if [[ $kaliYn == "Y" ]];then
+    		deb http://http.kali.org/kali sana main non-free contrib
+    		deb http://security.kali.org/kali-security sana/updates main contrib non-free
+    		deb-src http://http.kali.org/kali sana main non-free contrib
+    		deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
+    		gpg --keyserver pgpkeys.mit.edu --recv-key ED444FF07D8D0BF6
+    		gpg -a --export ED444FF07D8D0BF6| apt-key add -
+ 	fi
+fi
+
 echo "Performing System Updates..." # Update repos&software
-apt-get update -y -qq && apt-get upgrade -y -qq  || echo $AptError1
+apt-get update -y -q && apt-get upgrade -y -q  || echo $AptError1
 echo "Now installing: $GETLIST..."
-apt-get install -y -qq $GETLIST || echo "Error installing some program(s)"  # Install/Remove desired programs
+apt-get install -y -q $GETLIST || echo "Error installing some program(s)"  # Install/Remove desired programs
 echo "Removing programs: $KILLLIST"
-apt-get remove -y -qq $KILLLIST || echo "Kill list error!"
+apt-get remove -y -q $KILLLIST || echo "Kill list error!"
 }
  
  
  
  
-hello | tee $deplog
-config_USER | tee $deplog
-config_SSH | tee -a $deplog
-update_SYS | tee -a $deplog
-tweak_KERN | tee -a $deplog
+hello | tee $DEPLOG
+#config_USER | log >> $DEPLOG
+#update_SYS | log >> $DEPLOG
+#tweak_KERN | log >> $DEPLOG
+config_USER | tee -a $DEPLOG
+update_SYS | tee -a $DEPLOG
+tweak_KERN | tee -a $DEPLOG
  
 echo "All done!"
 echo Log written to $deplog
