@@ -33,7 +33,7 @@ erNoRoot="Must be ROOT to run this script"
 ## Got root?
 
 if [[ $(whoami) != "root" ]];then
-	echo erNoRoot
+	echo $erNoRoot
 	exit1
 fi
 
