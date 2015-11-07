@@ -29,17 +29,8 @@ FWERROR1='Error enabling firewall!'
 FWERROR2='Error opening port or port already open.'
 AptError1='Error updating system!'
 erNoRoot="Must be ROOT to run this script"
-
-# Now the script reads this data from the command line; inserts it into these files.
-
-# For the future, maybe..
-#fucntion log() 
-#{
-#  while read data
-#  do
-#      echo "[$(date +"%D %T")] $data" 
-#  done
-#}
+########
+## Got root?
 
 if [[ $(whoami) != "root" ]];then
 	echo erNoRoot
@@ -286,9 +277,6 @@ apt-get remove -y -q $KILLLIST || echo "Kill list error!"
  
  
 hello | tee $DEPLOG
-#config_USER | log >> $DEPLOG
-#update_SYS | log >> $DEPLOG
-#tweak_KERN | log >> $DEPLOG
 config_USER | tee -a $DEPLOG
 update_SYS | tee -a $DEPLOG
 tweak_KERN | tee -a $DEPLOG
