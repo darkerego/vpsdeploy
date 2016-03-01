@@ -261,7 +261,9 @@ if [[ $askKali == "true" ]];then
     	echo 	deb-src http://http.kali.org/kali sana main non-free contrib >> /etc/apt/sources.list
     	echo 	deb-src http://security.kali.org/kali-security sana/updates main contrib non-free >> /etc/apt/sources.list
     	 	gpg --keyserver pgpkeys.mit.edu --recv-key ED444FF07D8D0BF6
-    		gpg -a --export ED444FF07D8D0BF6| apt-key add -
+    		#gpg -a --export ED444FF07D8D0BF6| apt-key add -
+    		sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ED444FF07D8D0BF6
+
  	fi
 fi
 
