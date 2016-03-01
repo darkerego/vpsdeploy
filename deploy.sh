@@ -256,11 +256,11 @@ if [[ $askKali == "true" ]];then
 	echo "It appears this is a Debian Jessie system...($OS $VER $ARCH) ";sleep 1
 	read -p "Would you like to add the Kali Linux repos? (Y/N) :" kaliYn
 	if [[ $kaliYn == "Y" ]];then
-    		deb http://http.kali.org/kali sana main non-free contrib
-    		deb http://security.kali.org/kali-security sana/updates main contrib non-free
-    		deb-src http://http.kali.org/kali sana main non-free contrib
-    		deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
-    		gpg --keyserver pgpkeys.mit.edu --recv-key ED444FF07D8D0BF6
+    	echo 	deb http://http.kali.org/kali sana main non-free contrib >> /etc/apt/sources.list
+    	echo 	deb http://security.kali.org/kali-security sana/updates main contrib non-free >> /etc/apt/sources.list
+    	echo 	deb-src http://http.kali.org/kali sana main non-free contrib >> /etc/apt/sources.list
+    	echo 	deb-src http://security.kali.org/kali-security sana/updates main contrib non-free >> /etc/apt/sources.list
+    	echo 	gpg --keyserver pgpkeys.mit.edu --recv-key ED444FF07D8D0BF6
     		gpg -a --export ED444FF07D8D0BF6| apt-key add -
  	fi
 fi
