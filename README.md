@@ -1,15 +1,17 @@
 # vpsdeploy.sh
 #
 
-This version prompts to ask if the user would like to add the Kali Linux repos if running on a Debian Jessie system, then if so, adds Kali repos during system updates. 
-
 Quickly secure and configure a new vps. Getting root passwords by email sucks, this script helps you quickly add a non-root user, an ssh key, a firewall,
 updates the repo lists and software, and then installs/removes whatever software you define in this GETLIST and KILLLIST variables.
-Upload this script to /tmp or somewhere.
 
-1) Generate your keys
-2) Run the script
-3) Follow the prompts
+Newest version prompts to ask if the user would like to add the Kali Linux repos if running on a Debian Jessie system, then if so, adds Kali repos during system updates. 
+
+### Usage
+
+1) Upload this script to /tmp or somewhere. <br>
+2) Generate your keys <br>
+3) Run the script <br>
+4) Follow the prompts <br>
 
 # Changelog V 2.1
 * Fixed error causing .ssh folder to appear in /home and not /home/$user
