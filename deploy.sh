@@ -61,7 +61,6 @@ if [ ! -d $cwd/conf ]; then
 fi
 
 
-echo "Ready...";sleep 1;echo "Set...";sleep 1;echo "GO!";echo
 }
 function config_USER(){
 if [ $(id -u) -eq 0 ]; then
@@ -242,16 +241,11 @@ fi
 for i in $OS $VER $ARCH;do echo $i;done
 
 if [[ $OS == "Debian" ]];then
-        if [[ $VER == "8" ]]; then
-        askKali=true
-        elif [[$VER == "8.1" ]];then
-        askKali=true
-        elif [[$VER == "8.2" ]];then
-        askKali=true
-        fi
+        if grep "Jessie\|jessie" /etc/os-release >/dev/null 2>&1;
+	export askKali=yeah
 fi
 
-if [[ $askKali == "true" ]];then
+if [[ $askKali == "yeah" ]];then
 
 	echo "It appears this is a Debian Jessie system...($OS $VER $ARCH) ";sleep 1
 	read -p "Would you like to add the Kali Linux repos? (Y/N) :" kaliYn
