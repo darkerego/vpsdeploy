@@ -1,7 +1,7 @@
 # vpsdeploy.sh
 #
 
-Quickly secure and configure a new vps. Getting root passwords by email sucks, this script helps you quickly add a non-root user, an ssh key, a firewall, updates the repo lists and software, and then installs whatever software you define in the GET_LIST variable. Also set your default ssh key near the top of the script.
+Quickly secure and configure a new vps. Getting root passwords by email sucks, this script helps you quickly add a non-root user, an ssh key, a firewall, updates the repo lists and software, and then installs whatever software you define in the GET_LIST variable. Also set your default ssh key near the top of the script. And finally installs tor and sets up tor hidden service access.
 
 ### Usage
 
@@ -11,6 +11,7 @@ Quickly secure and configure a new vps. Getting root passwords by email sucks, t
 
 # Changelog V 3
 * Litterally rewrote everything
+* Automatically configures tor hidden service ssh access
 * Automatically installs dnscrypt-proxy, nsa-proof's SSHD, does other cool stuff.
 * It's just better.
 
