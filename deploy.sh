@@ -1,283 +1,266 @@
 #!/bin/bash
-##########################################################
-##      VPS Deploy V 2.1 -- Author Chev Y.              ##
-##      https://github.com/darkerego                    ##
-##########################################################
-##########################################################
-# A shell script that automates the configuration of     #
-# a linux system. Originally intended to be used only    #
-# on Debian-esc VPS systems, but should work on any      #
-# linux box. Upload to the target system, execute,       #
-# follow the prompts, and you're done.                   #
-##########################################################
-## Define Programs to install/uninstall here:
-GETLIST="harden-servers apache2 php5 secure-delete git openvpn"
-KILLLIST="popularity-contest zeitgeist zeitgeist-core"
-########
-cwd=$(pwd)
-CONFDIR="$cwd/conf"
-DEPLOG="$cwd/deploy.log"
-username=$username
-RIGHT_NOW=$(date +"%x %r %Z")
-########
-##Error Messages
-error1="Error setting shell!"
-SSHERROR1='SSH Configuration Error'
-SSHERROR2='ERROR SETTING PUBKEY'
-SSHERROR3='ERROR Restarting ssh daemon!'
-FWERROR1='Error enabling firewall!'
-FWERROR2='Error opening port or port already open.'
-AptError1='Error updating system!'
-erNoRoot="Must be ROOT to run this script"
-########
-## Got root?
+##################################################
+# Custom Debian Install Script - Makes redundant
+# installs just a little less, well-- redundant.
+##################################################
+#
 
-if [[ $(whoami) != "root" ]];then
-	echo $erNoRoot
-	exit1
-fi
+# your default ssh key. script will use this if you dont specify another one
+default_ssh_key="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCzk88QzLNFX/y13ESZCXUneCK+gjog/B/UKKWl4NIx+wHMRq8IMWAfiMPgwcueWQMDqdDMCyLDLY2oV0K2Eg1szIABsKAvMEVUwdaGRFdLq/s8xYd0+tPHgU5VAgr0OSTBfwzZlCAcOWJh9SzWsHd4i0QHMbzSiFZiybRoFTU9PmBAUvJq1jTx3mVgodcCefltmh308i39SHJM6fHlzHai7a6O9vrLPk5aLyrkY58n3zjI0C8DNNi/ews8ee0SfG7lTZ0u7F4W5TXmCdVOeNjN+b+gjerLXOptM0fmm8eRMYWTuf9x3p3TbHRwleOOJB7M01fdZ7YlWKS8EvYOUIHL user@host"
 
+# programs to install
+GET_LIST="irssi znc secure-delete openvpn tor tor-arm python-pip git ufw htop"
 
-# Read u/p & add a user. If Y then add user to group sudo
- 
-function hello(){
-
-echo -e "
-##########################################################
-#                #VpS_DeploY # Version 2.0#              #
-# A shell script that automates the configuration of     #
-# a linux system. Originally intended to be used only    #
-# on Debian-esc VPS systems, but should work on any      #
-# linux box. Upload to the target system, execute,       #
-# follow the prompts, and you're done!                   #
-##########################################################
-# Version 2.0 - Changes:                                 #
-# - Now reads ssh key and ssh options from shell so you  #
-#   don't need to save them to file before running       #
-##########################################################
-"
-if [ ! -d $cwd/conf ]; then
-        mkdir conf
-fi
-
-
-}
-function config_USER(){
-if [ $(id -u) -eq 0 ]; then
-        echo "Specify credentials. (Username+Password of user we're about to add)"
-	sleep 1
-        #(echo VpsDeploy $RIGHT_NOW) > $DEPLOG
-        read -p "Enter username : " username
-        read -s -p "Enter password : " password
-        echo "Configuring user..."
-        egrep "^$username" /etc/passwd >/dev/null
-        if [ $? -eq 0 ]; then
-                echo "$username exists!"
-                exit 1
-        else
-                pass=$(perl -e 'print crypt($ARGV[0], "password")' $password)
-                useradd -m -p $pass $username
-                [ $? -eq 0 ] && echo "User has been added to system!" || echo "Failed to add a user!"
-                echo "Setting user shell to BASH..."
-                usermod -s /bin/bash $username || echo $error1
- 
-                read -p "Should the user have sudo privileges? (Y/N) :" sudoYN
-                        if [ "$sudoYN" == "Y" ]; then
-                                usermod -a -G sudo $username || echo 'Config sudo fail, do we have sudo?'
-                        else
-                                 echo Standard account created.
-                        fi
-        fi
+install_stuff(){
+if [[ ! -f ~/.done ]] ; then 
+sudo apt -y update ;\
+sudo apt -y upgrade;\
+sudo apt -y install "$GET_LIST"
+if [[ ! -d /var/lib/dnscrypt ]] ; then
+  sleep 1;\
+  echo 'I will now install dnscrypt-proxy. Please follow the prompts.';\
+  sleep 1;\
+  cd /usr/local/src;\
+  sudo git clone https://github.com/simonclausen/dnscrypt-autoinstall &&\
+  cd dnscrypt-autoinstall &&\
+  sudo ./dnscrypt-autoinstall || echo 'Error installing dnscrypt!'
 else
-        echo $erNoRoot
-        exit 2
+  echo 'Already got dnscrypt...'
 fi
 
- 
-# Configure SSH
- 
-echo "checking for home dir..."
- 
-if [ ! -d /home/$username ]; then
-        mkdir /home/$username
-        chown $username:$username /home/username
-        chmod 750 /home/username
+sudo cp /etc/tor/torrc /etc/tor/torrc.orig
+sudo cp /etc/tor/torrc /tmp/torrc && \
+sudo bash -c " echo 'HiddenServiceDir /var/lib/tor/ssh_service' >>/tmp/torrc" &&\
+sudo bash -c " echo 'HiddenServicePort 22 127.0.0.1:22' >>/tmp/torrc " &&\
+sudo cp /tmp/torrc /etc/tor/torrc || exit 1
+
+(sudo service tor restart >/dev/null 2>&1 || sudo service tor start) || (echo "Failed to start tor! Wtf?";exit 1) &&\
+echo 'Your SSH .onion url:'
+sleep 1;echo '..';sleep 1;echo '...';sleep 1
+sudo cat '/var/lib/tor/ssh_service/hostname' 2>/dev/null;echo
+echo 1>~/.done
+sleep 1;echo '..';sleep 1;echo '...';sleep 1
 fi
- 
-echo "checking for user/.ssh"
- 
-if [ ! -d /home/$username/.ssh ]; then
-        mkdir /home/$username/.ssh
-        chmod 700 /home/$username/.ssh
+}
+
+harden_ssh(){
+
+echo "Hardening moduli..."
+awk '$5 > 2000' /etc/ssh/moduli > "${HOME}/moduli"
+if [[ $(wc -l "${HOME}/moduli") != "0" ]] ; then
+  sudo mv "${HOME}/moduli" /etc/ssh/moduli
+else
+  echo "Creating moduli..."
+  sudo ssh-keygen -G /etc/ssh/moduli.all -b 4096
+  sudo ssh-keygen -T /etc/ssh/moduli.safe -f /etc/ssh/moduli.all
+  sudo mv /etc/ssh/moduli.safe /etc/ssh/moduli
+  sudo rm /etc/ssh/moduli.all
 fi
- 
-echo copying keyfile to .ssh
-read -p "Specify port number for incoming ssh connections : " SHPORT
-echo Port $SHPORT > $cwd/conf/sshd_config
-cat <<EOF >> $cwd/conf/sshd_config
+
+
+echo "Creating host keys..."
+cd /etc/ssh
+sudo rm ssh_host_*key*
+sudo ssh-keygen -t ed25519 -f ssh_host_ed25519_key -N "" < /dev/null
+sudo ssh-keygen -t rsa -b 4096 -f ssh_host_rsa_key -N "" < /dev/null
+
+echo "Creating hardened config file"
+
+echo "\
+# Package generated configuration file
+# See the sshd_config(5) manpage for details
+
+# What ports, IPs and protocols we listen for
 Port 22
+# Use these options to restrict which interfaces/protocols sshd will bind to
 #ListenAddress ::
+ListenAddress 0.0.0.0:22
 Protocol 2
+# HostKeys for protocol version 2
 HostKey /etc/ssh/ssh_host_rsa_key
-HostKey /etc/ssh/ssh_host_dsa_key
-HostKey /etc/ssh/ssh_host_ecdsa_key
 HostKey /etc/ssh/ssh_host_ed25519_key
+#Privilege Separation is turned on for security
 UsePrivilegeSeparation yes
+
+# Lifetime and size of ephemeral version 1 server key
 KeyRegenerationInterval 3600
-ServerKeyBits 1024
+ServerKeyBits 4096
+AllowGroups ssh-users
+# Logging
 SyslogFacility AUTH
 LogLevel INFO
-LoginGraceTime 60
+
+# Authentication:
+LoginGraceTime 120
 PermitRootLogin no
 StrictModes yes
-#AllowUsers $user
-RSAAuthentication yes
+
+RSAAuthentication no
 PubkeyAuthentication yes
-AuthorizedKeysFile      %h/.ssh/authorized_keys
+AuthorizedKeysFile	%h/.ssh/authorized_keys
+
+# harden crypto
+KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-ripemd160-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,hmac-ripemd160,umac-128@openssh.com
+
+# Don't read the user's ~/.rhosts and ~/.shosts files
 IgnoreRhosts yes
+# For this to work you will also need host keys in /etc/ssh_known_hosts
 RhostsRSAAuthentication no
+# similar for protocol version 2
 HostbasedAuthentication no
+# Uncomment if you don't trust ~/.ssh/known_hosts for RhostsRSAAuthentication
 #IgnoreUserKnownHosts yes
+
+# To enable empty passwords, change to yes (NOT RECOMMENDED)
 PermitEmptyPasswords no
+
+# Change to yes to enable challenge-response passwords (beware issues with
+# some PAM modules and threads)
 ChallengeResponseAuthentication no
+
+# Change to no to disable tunnelled clear text passwords
 PasswordAuthentication no
+
 # Kerberos options
 #KerberosAuthentication no
 #KerberosGetAFSToken no
 #KerberosOrLocalPasswd yes
 #KerberosTicketCleanup yes
+
 # GSSAPI options
 #GSSAPIAuthentication no
 #GSSAPICleanupCredentials yes
-X11Forwarding yes
+
+X11Forwarding no
 X11DisplayOffset 10
 PrintMotd no
 PrintLastLog yes
 TCPKeepAlive yes
 #UseLogin no
+
 #MaxStartups 10:30:60
 #Banner /etc/issue.net
+
+# Allow client to pass locale environment variables
 AcceptEnv LANG LC_*
-Subsystem sftp /usr/lib/openssh/sftp-server
-UsePAM no
-EOF
- 
- 
-echo
-read -p "Paste your ssh public key here: " ssh_KEY;echo
-echo $ssh_KEY > $CONFDIR/authorized_keys
- 
-cp -p $CONFDIR/authorized_keys /home/$username/.ssh/authorized_keys && echo SSH key installed... || echo $SSHERROR1
- 
-echo Ensuring correct permissions...
- 
-chmod 600 /home/$username/.ssh/authorized_keys # Ensures integrity of permissions
-chmod 700 /home/$username/.ssh
-chown -R $username:$username /home/$username    # Make sure all config files are owned by user
- 
-echo "Writing sshd_config to file.."
-echo "Backing up original..."
-mv /etc/ssh/sshd_config /etc/ssh/sshd_config.orig || echo $SSHERROR1 # Backup sshd original
-cp -p $CONFDIR/sshd_config /etc/ssh/sshd_config || echo $SSHERROR1 # Preserve permissions
 
-service ssh restart || service ssh start
- 
- 
- 
-echo "Checking for ufw..."
-apt-get install ufw -y -qq > /dev/null # Ensure ufw is installed
-echo "Allowing ssh port $SHPORT ..."
-ufw allow $SHPORT || echo $FWERROR2     # Open configured ssh port
-ufw allow 22 || echo $FWERROR2  # Don't break our current session
- 
-echo "Now will enable firewall..."
-ufw enable  || echo $FWERROR1 || ufw restart || echo $FWERROR1
-service ssh restart || service ssh start  || echo $SSHERROR3  # Reload our new configuration
- 
-echo Done. Setting kernel tweaks...Please try to login as $username on port $SHPORT with your private key.
+Subsystem sftp /usr/lib/openssh/sftp-server -f auth -l info
+
+# Set this to 'yes' to enable PAM authentication, account processing,
+# and session processing. If this is enabled, PAM authentication will
+# be allowed through the ChallengeResponseAuthentication and
+# PasswordAuthentication.  Depending on your PAM configuration,
+# PAM authentication via ChallengeResponseAuthentication may bypass
+# the setting of 'PermitRootLogin without-password'.
+# If you just want the PAM account and session checks to run without
+# PAM authentication, then enable this but set PasswordAuthentication
+# and ChallengeResponseAuthentication to 'no'.
+UsePAM yes" >/tmp/sshd_config
+
+if [[ -f /tmp/sshd_config ]] ; then
+  sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
+  sudo mv /tmp/sshd_config /etc/ssh/sshd_config
+  if [[ "$?" -eq "0" ]] ; then
+    echo "Success!" ; return 0
+  else 
+   echo "Fail!" ; return 1 
+  fi
+fi
 }
- 
- 
-function tweak_KERN(){
-echo "Settings sysctl tweaks..."
-        sysctl -w net.netfilter.nf_conntrack_timestamp=1
-        sysctl -w net.ipv4.conf.default.rp_filter=1    
-        sysctl -w net.ipv4.conf.all.rp_filter=1
-        sysctl -w net.ipv4.conf.all.accept_redirects=0
-        sysctl -w net.ipv6.conf.all.accept_redirects=0
-        sysctl -w net.ipv4.conf.all.send_redirects=0
-        sysctl -w net.ipv4.conf.all.accept_source_route=0
-        sysctl -w net.ipv6.conf.all.accept_source_route=0
-        sysctl -w net.ipv4.tcp_syncookies=1
-        sysctl -w vm.swappiness=10
-        sysctl -w kernel.randomize_va_space=1
-        sysctl -w net.ipv4.conf.all.log_martians=1
-        sysctl -p
+
+
+add_users(){
+
+sudo groupadd ssh-users
+unset users
+unset added_one
+echo "I need to know which users should be allowed to ssh in to this server."
+while [[ -z "$users" ]] ; do
+  echo "Please enter each user followed by a space in this format: 'user user2 user3'"
+  read -p "Enter users : " users
+done
+for i in $(echo "$users") ; do
+  if grep "^$i.*sh$" /etc/passwd >/dev/null 2>&1 ; then
+    echo "Adding user $i to group ssh-users..."
+    sudo usermod -a -G ssh-users $i
+    export added_one=true
+  else
+    echo "Error: \'$i\' is not a valid user account on this system!"
+    read -p "Try again? Enter valid use name: " user_
+    if [[ -n "$user_" ]] ; then 
+      if grep "^$user_.*sh$" /etc/passwd >/dev/null 2>&1; then
+        echo "User $user_ is valid!"
+        sudo usermod -a -G ssh-users $i && export added_one=true
+      fi
+    fi
+  fi
+done
+if $added_one ; then return 0 ; else return 1 ; fi
 }
- 
-function update_SYS()
-{
-# Are we on Debian Jessie?
 
-ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-JES="Debian Jessie"
-askKali=false
+firewall_up(){
+echo 'Hardening ssh...'
+harden_ssh
+for x in $(seq 1 5) ; do 
+echo "Attempt $x/5 ..."
+add_users && break ||\
+ echo 'We need a valid user account. Try again!'
+done
+if $added_one ; then
 
-if [ -f /etc/lsb-release ]; then
-    . /etc/lsb-release
-    OS=$DISTRIB_ID
-    VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]; then
-    OS=Debian  # XXX or Ubuntu??
-    VER=$(cat /etc/debian_version)
-elif [ -f /etc/redhat-release ]; then
-    # TODO add code for Red Hat and CentOS here
-echo;echo
+  sudo ufw allow ssh
+  sudo ufw enable
+  read -p "Have you confirmed that you can log in with your public key? (yes/no)" I_am_not_an_idiot
+  if ([[ $I_am_not_an_idiot == "yes" ]]||[[ $I_am_not_an_idiot == "y" ]]||[[ $I_am_not_an_idiot == "Y" ]]) ; then
+    sudo service ssh restart
+  else
+    echo 'Remember to restart ssh after you have confirmed you can log in with your key!'
+  fi
+fi
+}
+
+conf_ssh(){
+echo 'Configuring ssh'
+mkdir ~/.ssh
+chmod 700 ~/.ssh
+read -p "Please paste your ssh key or press enter to use default" ssh_key
+if [[ -n "$ssh_key" ]] ; then
+  echo "$ssh_key" >~/.ssh/authorized_keys
 else
-    OS=$(uname -s)
-    VER=$(uname -r)
+  echo "$default_ssh_key" >~/.ssh/authorized_keys
 fi
+echo 'Contents of authorized_keys:'
+cat ~/.ssh/authorized_keys
 
-for i in $OS $VER $ARCH;do echo $i;done
+chmod 600 ~/.ssh/authorized_keys
+ip=$(wget -qO-  ipecho.net/plain)>/dev/null &&\
+echo "Success. You can now test logging in with ssh:";\
+echo "       $ ssh -i ~/.ssh/<key file> -v $USER@$ip"||\
+echo 'Temporary error. Try logging in with ssh key'
 
-if [[ $OS == "Debian" ]];then
-        if grep "Jessie\|jessie" /etc/os-release >/dev/null 2>&1;
-	export askKali=yeah
-fi
-
-if [[ $askKali == "yeah" ]];then
-
-	echo "It appears this is a Debian Jessie system...($OS $VER $ARCH) ";sleep 1
-	read -p "Would you like to add the Kali Linux repos? (Y/N) :" kaliYn
-	if [[ $kaliYn == "Y" ]];then
-    	echo 	deb http://http.kali.org/kali sana main non-free contrib >> /etc/apt/sources.list
-    	echo 	deb http://security.kali.org/kali-security sana/updates main contrib non-free >> /etc/apt/sources.list
-    	echo 	deb-src http://http.kali.org/kali sana main non-free contrib >> /etc/apt/sources.list
-    	echo 	deb-src http://security.kali.org/kali-security sana/updates main contrib non-free >> /etc/apt/sources.list
-    	 	gpg --keyserver pgpkeys.mit.edu --recv-key ED444FF07D8D0BF6
-    		#gpg -a --export ED444FF07D8D0BF6| apt-key add -
-    		sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ED444FF07D8D0BF6
-
- 	fi
-fi
-
-echo "Performing System Updates..." # Update repos&software
-apt-get update -y -q && apt-get upgrade -y -q  || echo $AptError1
-echo "Now installing: $GETLIST..."
-apt-get install -y -q $GETLIST || echo "Error installing some program(s)"  # Install/Remove desired programs
-echo "Removing programs: $KILLLIST"
-apt-get remove -y -q $KILLLIST || echo "Kill list error!"
 }
- 
- 
- 
- 
-hello | tee $DEPLOG
-config_USER | tee -a $DEPLOG
-update_SYS | tee -a $DEPLOG
-tweak_KERN | tee -a $DEPLOG
- 
-echo "All done!"
-echo Log written to $deplog
- 
-exit 0
+
+if [[ ! -f ~/.ssh/authorized_keys ]] ; then
+conf_ssh
+fi
+
+echo 'Done, updating system and installing software'
+
+which sudo >/dev/null 2>&1 &&\
+if groups $USER|grep sudo >/dev/null 2>&1 ; then gotSudo='True' ;fi
+
+
+if [[ "$gotSudo" != "True" ]]; then
+  (export user=$USER
+  su -c "apt -y update ;apt -y install sudo;usermod -a -G sudo $user"
+  echo 'Please log out of ssh and in again, and rerun this script to finish.')
+fi
+
+
+
+install_stuff
+firewall_up
+
+exit
