@@ -7,16 +7,16 @@
 #
 
 # your default ssh key. script will use this if you dont specify another one
-default_ssh_key="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCzk88QzLNFX/y13ESZCXUneCK+gjog/B/UKKWl4NIx+wHMRq8IMWAfiMPgwcueWQMDqdDMCyLDLY2oV0K2Eg1szIABsKAvMEVUwdaGRFdLq/s8xYd0+tPHgU5VAgr0OSTBfwzZlCAcOWJh9SzWsHd4i0QHMbzSiFZiybRoFTU9PmBAUvJq1jTx3mVgodcCefltmh308i39SHJM6fHlzHai7a6O9vrLPk5aLyrkY58n3zjI0C8DNNi/ews8ee0SfG7lTZ0u7F4W5TXmCdVOeNjN+b+gjerLXOptM0fmm8eRMYWTuf9x3p3TbHRwleOOJB7M01fdZ7YlWKS8EvYOUIHL user@host"
+default_ssh_key='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDbVnKeFFv4h69f0j+loVdVYE/3sFOX/CqE7th1/k4MoxHYABJX4jf/4734wk5U+FBjt8AKEXHKaZXsCT5pZxRRQ7SbLwcJvN5HfyKQrv2e+z0t9kP97C3YitUI43PrzRcAX8p/xqadDKdL6b3rpL37iwX6WKD5M/t0ljYqR3w35zHi0K8W4zPUq6ZY3HO7nDAMWyEwIKE97pCE31TLGiPPVKjYjtrM6ii+XimE1gKWyQ3jVlxKYBMkPrU2IH2ppBjykjPpmpfMO5DXR+dS7LNBL9389MPGOabqnPz3xv7Q4ZrufquJMCsDEBx262h0u04jAaYLbqaUakaKs0MO6yUt anon@hell'
 
 # programs to install
-GET_LIST="irssi znc secure-delete openvpn tor tor-arm python-pip git ufw htop"
+GET_LIST='irssi secure-delete openvpn tor tor-arm git ufw htop whois mosquitto mosquitto-clients python-pip python3-pip'
 
 install_stuff(){
-if [[ ! -f ~/.done ]] ; then 
+if [[ ! -f "~/.done" ]] ; then 
 sudo apt -y update ;\
 sudo apt -y upgrade;\
-sudo apt -y install "$GET_LIST"
+sudo apt -y install $GET_LIST
 if [[ ! -d /var/lib/dnscrypt ]] ; then
   sleep 1;\
   echo 'I will now install dnscrypt-proxy. Please follow the prompts.';\
@@ -33,13 +33,13 @@ sudo cp /etc/tor/torrc /etc/tor/torrc.orig
 sudo cp /etc/tor/torrc /tmp/torrc && \
 sudo bash -c " echo 'HiddenServiceDir /var/lib/tor/ssh_service' >>/tmp/torrc" &&\
 sudo bash -c " echo 'HiddenServicePort 22 127.0.0.1:22' >>/tmp/torrc " &&\
-sudo cp /tmp/torrc /etc/tor/torrc || exit 1
+sudo bash -c "cp /tmp/torrc /etc/tor/torrc" || exit 1
 
 (sudo service tor restart >/dev/null 2>&1 || sudo service tor start) || (echo "Failed to start tor! Wtf?";exit 1) &&\
 echo 'Your SSH .onion url:'
 sleep 1;echo '..';sleep 1;echo '...';sleep 1
-sudo cat '/var/lib/tor/ssh_service/hostname' 2>/dev/null;echo
-echo 1>~/.done
+sudo cat '/var/lib/tor/ssh_service/hostname' 2>/dev/null >$HOME/onion;cat $HOME/onion;echo
+echo 1>"~/.done"
 sleep 1;echo '..';sleep 1;echo '...';sleep 1
 fi
 }
@@ -185,18 +185,42 @@ done
 for i in $(echo "$users") ; do
   if grep "^$i.*sh$" /etc/passwd >/dev/null 2>&1 ; then
     echo "Adding user $i to group ssh-users..."
-    sudo usermod -a -G ssh-users $i
-    export added_one=true
+    sudo usermod -a -G ssh-users $i && export added_one=true
   else
-    echo "Error: \'$i\' is not a valid user account on this system!"
-    read -p "Try again? Enter valid use name: " user_
-    if [[ -n "$user_" ]] ; then 
-      if grep "^$user_.*sh$" /etc/passwd >/dev/null 2>&1; then
-        echo "User $user_ is valid!"
-        sudo usermod -a -G ssh-users $i && export added_one=true
+    echo "Error: $i is not a valid user account on this system!"
+    read -p "Try again or add user to system? (y/n/add)  :" tryagain
+    if [[ "$tryagain" == 'y' ]]; then
+      read -p "Please enter a valid user account: " user_
+      if [[ -n "$user_" ]] ; then 
+        if grep "^$user_.*sh$" /etc/passwd >/dev/null 2>&1; then
+          echo "User $user_ is valid!"
+          sudo usermod -a -G ssh-users $i && export added_one=true
+        fi
       fi
-    fi
-  fi
+    
+    elif [[ "$tryagain" == 'add' ]]; then
+      if grep "^$i.*sh$" /etc/passwd >/dev/null 2>&1 ; then
+        echo 'This account already exists!'
+        sudo usermod -a -G ssh-users $i  &&  export added_one=true && echo " Successfully addeded $i"
+      else
+        #read -rsp "Enter password for user account $i : " thispw
+        #echo 'Encrypting passsword...'
+        #mkpasswd -V >/dev/null 2>&1 || sudo apt update && sudo apt -y -qq install whois
+        #thispwd="$(mkpasswd -m sha-512 \"$thispw\")"
+        #unset thispw
+        #useradd -p "$thispwd" -s /bin/bash -G ssh-users $i
+        adduser $i
+        sudo usermod -a -G ssh-users $i
+        if [[ $? -eq "0" ]] ; then
+          echo "Success..."
+        else
+          echo 'Failed...'
+        fi
+      fi
+    else
+      echo 'Ok then'
+   fi
+fi
 done
 if $added_one ; then return 0 ; else return 1 ; fi
 }
@@ -213,6 +237,7 @@ if $added_one ; then
 
   sudo ufw allow ssh
   sudo ufw enable
+  echo 'SSH host keys have changed. You can safely ignore that warning.'
   read -p "Have you confirmed that you can log in with your public key? (yes/no)" I_am_not_an_idiot
   if ([[ $I_am_not_an_idiot == "yes" ]]||[[ $I_am_not_an_idiot == "y" ]]||[[ $I_am_not_an_idiot == "Y" ]]) ; then
     sudo service ssh restart
@@ -262,6 +287,7 @@ fi
 
 
 install_stuff
+
 firewall_up
 
-exit
+
